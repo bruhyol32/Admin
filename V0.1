@@ -1,0 +1,461 @@
+-- brookhaven admin panel (made by haunted)
+
+-- ;superman
+local Players = game:GetService("Players")
+local function onChat(player, message)
+    if message:lower() == ";superman" then
+        local character = player.Character
+        if character then
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid.WalkSpeed = 100
+                humanoid.JumpPower = 200
+            end
+        end
+    end
+end
+Players.PlayerAdded:Connect(function(player)
+    player.Chatted:Connect(function(message)
+        onChat(player, message)
+    end)
+end)
+for _, player in ipairs(Players:GetPlayers()) do
+    player.Chatted:Connect(function(message)
+        onChat(player, message)
+    end)
+end
+
+-- ;speed
+local Players = game:GetService("Players")
+local function onChat(player, message)
+    local command, value = message:match("^(;speed) (%d+)$")
+    if command == ";speed" and value then
+        local speedValue = tonumber(value)
+        if speedValue then
+            local character = player.Character
+            if character then
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid.WalkSpeed = speedValue
+                end
+            end
+        end
+    end
+end
+Players.PlayerAdded:Connect(function(player)
+    player.Chatted:Connect(function(message)
+        onChat(player, message)
+    end)
+end)
+for _, player in ipairs(Players:GetPlayers()) do
+    player.Chatted:Connect(function(message)
+        onChat(player, message)
+    end)
+end
+
+-- jump power
+local Players = game:GetService("Players")
+local function onChat(player, message)
+    local command, value = message:match("^(;jumppower) (%d+)$")
+    if command == ";jumppower" and value then
+        local jumpPowerValue = tonumber(value)
+        if jumpPowerValue then
+            local character = player.Character
+            if character then
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid.UseJumpPower = true
+                    humanoid.JumpPower = jumpPowerValue
+                    print(player.Name .. " hat die Sprungkraft auf " .. jumpPowerValue .. " gesetzt!")
+                end
+            end
+        end
+    end
+end
+Players.PlayerAdded:Connect(function(player)
+    player.Chatted:Connect(function(message)
+        onChat(player, message)
+    end)
+end)
+for _, player in ipairs(Players:GetPlayers()) do
+    player.Chatted:Connect(function(message)
+        onChat(player, message)
+    end)
+end
+
+-- Fly
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local flyingPlayers = {} 
+local flyEnabled = {} 
+local playerSpeeds = {}
+local function startFlying(player, speed)
+    local character = player.Character
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+    local rootPart = character and character:FindFirstChild("HumanoidRootPart")
+    if humanoid and rootPart and not flyingPlayers[player.Name] then
+        flyingPlayers[player.Name] = true
+        flyEnabled[player.Name] = true
+        playerSpeeds[player.Name] = speed or 50
+        humanoid.PlatformStand = true
+        local bodyGyro = Instance.new("BodyGyro")
+        local bodyVelocity = Instance.new("BodyVelocity")
+        bodyGyro.CFrame = rootPart.CFrame
+        bodyGyro.MaxTorque = Vector3.new(400000, 400000, 400000)
+        bodyGyro.P = 10000
+        bodyGyro.Parent = rootPart
+        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        bodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
+        bodyVelocity.Parent = rootPart
+        local flyConnection
+        flyConnection = RunService.RenderStepped:Connect(function()
+            local camera = workspace.CurrentCamera
+            local moveDirection = Vector3.new()
+
+            if UIS:IsKeyDown(Enum.KeyCode.W) then
+                moveDirection = moveDirection + camera.CFrame.LookVector
+            end
+            if UIS:IsKeyDown(Enum.KeyCode.S) then
+                moveDirection = moveDirection - camera.CFrame.LookVector
+            end
+            if UIS:IsKeyDown(Enum.KeyCode.A) then
+                moveDirection = moveDirection - camera.CFrame.RightVector
+            end
+            if UIS:IsKeyDown(Enum.KeyCode.D) then
+                moveDirection = moveDirection + camera.CFrame.RightVector
+            end
+            if UIS:IsKeyDown(Enum.KeyCode.Space) then
+                moveDirection = moveDirection + Vector3.new(0, 1, 0)
+            end
+            bodyVelocity.Velocity = moveDirection * playerSpeeds[player.Name]
+            bodyGyro.CFrame = CFrame.new(rootPart.Position, rootPart.Position + camera.CFrame.LookVector)
+        end)
+        flyingPlayers[player.Name] = {
+            bodyGyro = bodyGyro,
+            bodyVelocity = bodyVelocity,
+            flyConnection = flyConnection
+        }
+
+        end
+end
+local function stopFlying(player)
+    local flyingData = flyingPlayers[player.Name]
+    if flyingData then
+        flyingData.bodyGyro:Destroy()
+        flyingData.bodyVelocity:Destroy()
+        flyingData.flyConnection:Disconnect()
+        local character = player.Character
+        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.PlatformStand = false
+        end
+        flyingPlayers[player.Name] = nil
+        print(player.Name .. " fliegt nicht mehr!")
+    end
+end
+local function toggleFly(player)
+    if flyEnabled[player.Name] then
+        if flyingPlayers[player.Name] then
+            stopFlying(player)
+        else
+            startFlying(player, playerSpeeds[player.Name])
+        end
+    end
+end
+local function onChat(player, message)
+    local args = message:lower():split(" ")
+    local command = args[1]
+    local speed = tonumber(args[2])
+    if command == ";fly" then
+        startFlying(player, speed)
+    elseif command == ";unfly" then
+        stopFlying(player)
+        flyEnabled[player.Name] = false
+    end
+end
+local function onKeyPress(player)
+    UIS.InputBegan:Connect(function(input, isProcessed)
+        if input.KeyCode == Enum.KeyCode.X and not isProcessed then
+            toggleFly(player)
+        end
+    end)
+end
+Players.PlayerAdded:Connect(function(player)
+    player.Chatted:Connect(function(message)
+        onChat(player, message)
+    end)
+    onKeyPress(player)
+end)
+for _, player in ipairs(Players:GetPlayers()) do
+    player.Chatted:Connect(function(message)
+        onChat(player, message)
+    end)
+    onKeyPress(player)
+end
+
+-- noclip/clip
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local noclippingPlayers = {}
+local function startNoclip(player)
+    noclippingPlayers[player.Name] = RunService.Stepped:Connect(function()
+        local character = player.Character
+        if character then
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") and part.CanCollide then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end)
+end
+local function stopNoclip(player)
+    if noclippingPlayers[player.Name] then
+        noclippingPlayers[player.Name]:Disconnect()
+        noclippingPlayers[player.Name] = nil
+        
+        local character = player.Character
+        if character then
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+        end
+    end
+end
+local function onChat(player, message)
+    local command = message:lower()
+
+    if command == ";noclip" then
+        startNoclip(player)
+    elseif command == ";clip" then
+        stopNoclip(player)
+    end
+end
+Players.PlayerAdded:Connect(function(player)
+    player.Chatted:Connect(function(message)
+        onChat(player, message)
+    end)
+end)
+for _, player in ipairs(Players:GetPlayers()) do
+    player.Chatted:Connect(function(message)
+        onChat(player, message)
+    end)
+end
+
+-- ;sit
+local Players = game:GetService("Players")
+local function sitPlayer(player)
+    local character = player.Character
+    if character then
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.Sit = true
+        end
+    end
+end
+local function onChat(player, message)
+    local command = message:lower()
+    if command == ";sit" then
+        sitPlayer(player)
+    end
+end
+Players.PlayerAdded:Connect(function(player)
+    player.Chatted:Connect(function(message)
+        onChat(player, message)
+    end)
+end)
+for _, player in ipairs(Players:GetPlayers()) do
+    player.Chatted:Connect(function(message)
+        onChat(player, message)
+    end)
+end
+
+-- Goto
+local Players = game:GetService("Players")
+local function teleportToPlayer(admin, targetName)
+    local targetPlayer = Players:FindFirstChild(targetName)
+    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local targetRoot = targetPlayer.Character.HumanoidRootPart
+        local adminRoot = admin.Character and admin.Character:FindFirstChild("HumanoidRootPart")       
+        if adminRoot then
+            adminRoot.CFrame = targetRoot.CFrame
+        end
+    end
+end
+local function onChat(player, message)
+    local args = message:lower():split(" ")
+    local command = args[1]
+    local targetName = args[2]
+
+    if command == ";goto" and targetName then
+        teleportToPlayer(player, targetName)
+    end
+end
+Players.PlayerAdded:Connect(function(player)
+    player.Chatted:Connect(function(message)
+        onChat(player, message)
+    end)
+end)
+for _, player in ipairs(Players:GetPlayers()) do
+    player.Chatted:Connect(function(message)
+        onChat(player, message)
+    end)
+end
+
+-- kill
+local Players = game:GetService("Players")
+local function voidTeleport(player)
+    local character = player.Character
+    if character then
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+        if humanoid and humanoidRootPart then
+            local originalPosition = humanoidRootPart.Position
+            humanoidRootPart.CanCollide = false
+            humanoidRootPart.Position = originalPosition - Vector3.new(0, 250, 0)
+            print("In den Void teleportiert!")
+            wait(3)
+            humanoidRootPart.Anchored = true
+            humanoidRootPart.Position = originalPosition
+            print("Zurück zur ursprünglichen Position!")
+            wait(0.2)
+            humanoidRootPart.CanCollide = true
+            humanoidRootPart.Anchored = false
+            humanoid.Health = 0
+            print("Spieler wurde getötet!")
+        else
+            print("Humanoid oder HumanoidRootPart nicht gefunden.")
+        end
+    else
+        print("Charakter nicht gefunden.")
+    end
+end
+local function onChat(player, message)
+    if message:lower() == ";kill" then
+        voidTeleport(player)
+    end
+end
+Players.PlayerAdded:Connect(function(player)
+    player.Chatted:Connect(function(message)
+        onChat(player, message)
+    end)
+end)
+for _, player in ipairs(Players:GetPlayers()) do
+    player.Chatted:Connect(function(message)
+        onChat(player, message)
+    end)
+end
+
+-- suicide
+local Players = game:GetService("Players")
+local SoundService = game:GetService("SoundService")
+
+-- Funktion, um den Sound abzuspielen und den Spieler sterben zu lassen
+local function ahCommand(player)
+    local character = player.Character
+    if character then
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        local head = character:FindFirstChild("Head")
+
+        if humanoid and head then
+            -- Sound erstellen und abspielen
+            local sound = Instance.new("Sound")
+            sound.SoundId = "rbxassetid://12345678"  -- Hier die Sound ID einfügen
+            sound.Parent = SoundService
+            sound:Play()
+
+            -- Kopf löschen
+            head:Destroy()
+
+            -- Spieler sterben lassen
+            humanoid.Health = 0
+
+            print("Sound abgespielt, Kopf gelöscht und Spieler getötet!")
+        else
+            print("Humanoid oder Kopf nicht gefunden.")
+        end
+    else
+        print("Charakter nicht gefunden.")
+    end
+end
+local function onChat(player, message)
+    if message:lower() == ";ah" then
+        ahCommand(player)
+    end
+end
+Players.PlayerAdded:Connect(function(player)
+    player.Chatted:Connect(function(message)
+        onChat(player, message)
+    end)
+end)
+for _, player in ipairs(Players:GetPlayers()) do
+    player.Chatted:Connect(function(message)
+        onChat(player, message)
+    end)
+end
+
+-- rejoin
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+
+-- Funktion, um den Spieler neu zu verbinden
+local function rejoinCommand(player)
+    -- Teleportiere den Spieler zurück ins Spiel
+    local playerId = player.UserId
+    local placeId = game.PlaceId
+
+    TeleportService:Teleport(placeId, player)
+    print(player.Name .. " wird neu verbunden.")
+end
+
+-- Funktion, um auf Chat-Nachrichten zu reagieren
+local function onChat(player, message)
+    if message:lower() == ";rejoin" then
+        rejoinCommand(player)
+    end
+end
+
+-- Spielerüberwachung beim Beitritt
+Players.PlayerAdded:Connect(function(player)
+    player.Chatted:Connect(function(message)
+        onChat(player, message)
+    end)
+end)
+
+-- Für bereits eingeloggte Spieler
+for _, player in ipairs(Players:GetPlayers()) do
+    player.Chatted:Connect(function(message)
+        onChat(player, message)
+    end)
+end
+
+
+-- admin loader
+local Players = game:GetService("Players")
+local function showAdminLoadedMessage(player)
+    local screenGui = Instance.new("ScreenGui")
+    local textLabel = Instance.new("TextLabel")
+    screenGui.Parent = player:WaitForChild("PlayerGui")
+    screenGui.ResetOnSpawn = false
+    textLabel.Parent = screenGui
+    textLabel.Text = "Admin Loaded"
+    textLabel.Size = UDim2.new(0, 200, 0, 50)
+    textLabel.Position = UDim2.new(1, -220, 1, -60)
+    textLabel.BackgroundTransparency = 0.5
+    textLabel.TextScaled = true
+    textLabel.TextColor3 = Color3.new(1, 1, 1)
+    textLabel.BackgroundColor3 = Color3.new(0, 0, 0)
+    wait(5)
+    screenGui:Destroy()
+end
+Players.PlayerAdded:Connect(function(player)
+    showAdminLoadedMessage(player)
+end)
+for _, player in ipairs(Players:GetPlayers()) do
+    showAdminLoadedMessage(player)
+end
+
